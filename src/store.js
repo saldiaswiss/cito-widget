@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { searchRequest, buildPayload } from './api.js'
+import { adapter } from './adapter.js'
 
 export const store = reactive({
   open: false,
@@ -99,7 +100,8 @@ export function setHostInput(el) { hostInput = el }
 export function syncHostInput() { if (hostInput) hostInput.value = store.q }
 export function focusHostInput() { if (hostInput) hostInput.focus() }
 
-//translations: printed by the tpl via Tygh.tr; fall back to english defaults
+//translations: the host shop's own lookup through the adapter (CS-Cart: Tygh.tr, printed
+//by the tpl); fall back to english defaults when it has none for the key
 const TR_DEFAULTS = {
   'cito.recently_viewed': 'Recently viewed',
   'cito.filters': 'Filters',
@@ -145,19 +147,9 @@ const trCache = {}
 export function tr(key, repl) {
   let s = trCache[key]
   if (s === undefined) {
-    const T = window.Tygh
-    if (T && typeof T.tr === 'function') {
-      //Tygh.tr console.errors on unknown keys (our new keys until the addon ships
-      //their lang vars); probe once per key with the noise muted
-      const origError = console.error
-      console.error = () => {}
-      try { s = T.tr(key) } finally { console.error = origError }
-    }
-    //CS-Cart renders a langvar that was never imported as the literal '_cito.assist_ask'
-    //(leading underscore = "not imported"), which is neither empty nor equal to the key -
-    //so without this the overlay would print that string to visitors whenever the alangs
-    //step was skipped on a rollout. Fall back to the built-in default instead.
-    if (typeof s === 'string' && s.charAt(0) === '_') s = ''
+    //probed once per key; undefined/empty/the key itself = the shop has no text for it
+    //(the adapter already maps the platform's "missing" markers to undefined)
+    try { s = adapter.tr(key) } catch (e) { s = undefined }
     if (!s || s === key) s = TR_DEFAULTS[key] || key
     trCache[key] = s
   }
@@ -246,20 +238,15 @@ export function search(append = false) {
   if (!append) loadSuggestions(q)
 }
 
-//"others searched" chips via the addon's cito.q_suggestions controller (shop-side)
+//"others searched" chips via the shop-side suggestions helper (adapter, contract §8c)
 let suggestionsCtrl = null
 function loadSuggestions(q) {
   const p = window.citoParams
-  if (!p.show_other_users_searched || typeof window.fn_url !== 'function') return
+  if (!p.show_other_users_searched) return
   if (suggestionsCtrl) suggestionsCtrl.abort()
   suggestionsCtrl = new AbortController()
-  fetch(window.fn_url('cito.q_suggestions?is_ajax=1'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'q=' + encodeURIComponent(q),
-    signal: suggestionsCtrl.signal,
-  }).then(r => r.json()).then(res => {
-    const list = (res && res.suggestions) ? res.suggestions : []
+  Promise.resolve().then(() => adapter.suggestions(q, suggestionsCtrl.signal)).then(list => {
+    if (!Array.isArray(list)) list = []
     store.suggestions = list.filter(s => s.trim().toLowerCase() !== q.toLowerCase()).slice(0, 6)
   }).catch(() => {})
 }
@@ -271,14 +258,10 @@ function loadSuggestions(q) {
 let popularLoaded = false
 export function loadPopular() {
   const p = window.citoParams
-  if (popularLoaded || !p.show_other_users_searched || typeof window.fn_url !== 'function') return
+  if (popularLoaded || !p.show_other_users_searched) return
   popularLoaded = true
-  fetch(window.fn_url('cito.q_suggestions?is_ajax=1'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'q=',
-  }).then(r => r.json()).then(res => {
-    const list = (res && res.suggestions) ? res.suggestions : []
+  Promise.resolve().then(() => adapter.suggestions('')).then(list => {
+    if (!Array.isArray(list)) list = []
     const own = (p.last_searches || []).map(s => String(s).trim().toLowerCase())
     store.popular = list
       .filter(s => s && String(s).trim().length >= 2 && !own.includes(String(s).trim().toLowerCase()))
@@ -364,15 +347,12 @@ export function showMore() {
   search(true)
 }
 
-//query logging for the "other users searched" suggestions (same beacon as func.js)
+//query logging for the "other users searched" suggestions (adapter, contract §8c; same
+//beacon func.js sends). Debounced 2s so a query still being typed is not logged.
 let logTimer = null
 function logSearch(q, numResults) {
   if (logTimer) clearTimeout(logTimer)
   logTimer = setTimeout(() => {
-    if (typeof window.fn_url !== 'function' || !navigator.sendBeacon) return
-    const fd = new FormData()
-    fd.append('q', q)
-    fd.append('num_results', numResults)
-    navigator.sendBeacon(window.fn_url('cito.q'), fd)
+    try { adapter.logQuery(q, numResults) } catch (e) { /* never break the shop for a log */ }
   }, 2000)
 }

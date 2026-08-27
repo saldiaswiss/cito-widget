@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import { store, search, setHostInput, applyHash, initRecent, initView, setSearchHook } from './store.js'
+import { adapter, initAdapter } from './adapter.js'
 import { maybeAutoAsk } from './ai.js'
 import { loadRecs, hasSearchedThisSession } from './recs.js'
 
@@ -10,13 +11,9 @@ import { loadRecs, hasSearchedThisSession } from './recs.js'
 //one or the other.
 //borrow the host shop's brand color so the widget reads as native everywhere:
 //sample the first saturated background among the theme's primary controls
-//(fallback: a neutral dark red that survives any theme)
+//(adapter.accentCandidates; fallback: a neutral dark red that survives any theme)
 function sampleAccent() {
-  const candidates = [
-    '.ty-btn__primary', '.ty-btn-go', 'button[type="submit"]',
-    '.ut2-btn', '.ty-btn', 'a.cm-submit',
-  ]
-  for (const sel of candidates) {
+  for (const sel of adapter.accentCandidates || []) {
     for (const el of document.querySelectorAll(sel)) {
       const c = getComputedStyle(el).backgroundColor
       const m = c && c.match(/\d+(\.\d+)?/g)
@@ -32,21 +29,28 @@ function sampleAccent() {
   return '#C8102E'
 }
 
-const SELECTOR = '#search_input, form[name="search_form"] input[name="q"], form[name="search_form"] input[name="hint_q"]'
+//the page's own search input(s) - the adapter knows the theme; anything inside
+//`excludeInputWithin` (e.g. a filter rail's own search box) is not ours
+function isOurInput(el) {
+  if (!el || !el.matches || !el.matches(adapter.searchInputSelector)) return false
+  const excl = adapter.excludeInputWithin
+  return !(excl && el.closest(excl))
+}
 
 //animated typing placeholder in the page's search box (same theater.min.js and
-//phrases the legacy dropdown used; loaded only when the shop configured phrases)
+//phrases the legacy dropdown used; loaded only when the shop configured phrases
+//AND the host ships the library - adapter.theaterSrc '' = no placeholder)
 function initTheater() {
   const phrases = window.citoParams.searchPhrases
-  if (!Array.isArray(phrases) || !phrases.length) return
+  if (!Array.isArray(phrases) || !phrases.length || !adapter.theaterSrc) return
   const s = document.createElement('script')
-  s.src = 'js/addons/nl_cito/theater.min.js'
+  s.src = adapter.theaterSrc
   s.onload = () => {
     if (typeof window.theaterJS !== 'function') return
     const theater = window.theaterJS()
     theater.addActor('searchInput', { accuracy: 0.6, speed: 0.8 }, displayValue => {
-      document.querySelectorAll(SELECTOR).forEach(input => {
-        if (!input.closest('.ty-product-filters')) input.setAttribute('placeholder', displayValue)
+      document.querySelectorAll(adapter.searchInputSelector).forEach(input => {
+        if (isOurInput(input)) input.setAttribute('placeholder', displayValue)
       })
     })
     phrases.forEach(phrase => theater.addScene('searchInput:' + phrase, 1800))
@@ -58,6 +62,7 @@ function initTheater() {
 function init() {
   if (!window.citoParams || document.getElementById('cito_overlay_root')) return
 
+  initAdapter() //host overrides (window.citoAdapter) are inlined by now, like citoParams
   store.accent = sampleAccent()
 
   const host = document.createElement('div')
@@ -90,8 +95,7 @@ function init() {
 
   const matchInput = e => {
     const t = e.target
-    if (!t.matches || !t.matches(SELECTOR)) return null
-    if (t.closest('.ty-product-filters') || t.closest('#cito_overlay_root')) return null
+    if (!isOurInput(t) || t.closest('#cito_overlay_root')) return null
     return t
   }
 
@@ -117,7 +121,7 @@ function init() {
   //also catch submits of the header search form while the overlay is closed
   document.addEventListener('submit', e => {
     const form = e.target
-    if (form.name === 'search_form' && store.open) {
+    if (adapter.searchFormName && form.name === adapter.searchFormName && store.open) {
       e.preventDefault()
     }
   })

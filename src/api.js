@@ -1,3 +1,5 @@
+import { adapter } from './adapter.js'
+
 //API client for the cito search endpoint (citoParams.url -> api/s.php).
 //JSON body with Content-Type text/plain: keeps the request "simple" (no CORS
 //preflight - the API only sends Access-Control-Allow-Origin); the API merges
@@ -41,36 +43,26 @@ export function buildPayload(store) {
   return payload
 }
 
-//lazy product images: the index often has no thumbnail url at sync time; the
-//addon's cito.image controller generates one on demand (same fallback func.js
-//used onerror, here also used for empty images, driven by an IntersectionObserver)
+//lazy product images: the index often has no thumbnail url at sync time; the shop
+//generates one on demand through the adapter (contract §8b; same fallback func.js
+//used onerror, here also used for empty images, driven by an IntersectionObserver).
+//Cached per page here, whatever the adapter does - one request per product id.
 const imgCache = new Map()
 export function fetchImage(productId) {
   if (!imgCache.has(productId)) {
-    const req = fetch(window.fn_url ? window.fn_url('cito.image?is_ajax=1') : '?dispatch=cito.image&is_ajax=1', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'product_id=' + encodeURIComponent(productId),
-    }).then(r => r.json()).then(d => (d && d.src) ? d.src : '').catch(() => '')
+    const req = Promise.resolve()
+      .then(() => adapter.fetchImage(productId))
+      .then(src => (typeof src === 'string' ? src : ''))
+      .catch(() => '') //a host adapter that throws must not break the card
     imgCache.set(productId, req)
   }
   return imgCache.get(productId)
 }
 
-//product url via the storefront's own url builder when available
-export function productUrl(item) {
-  if (typeof window.fn_url === 'function') {
-    return window.fn_url('products.view?product_id=' + item.product_id)
-  }
-  return '?dispatch=products.view&product_id=' + item.product_id
-}
-
-export function searchPageUrl(q) {
-  if (typeof window.fn_url === 'function') {
-    return window.fn_url('products.search?search_performed=Y&q=' + encodeURIComponent(q))
-  }
-  return '?dispatch=products.search&search_performed=Y&q=' + encodeURIComponent(q)
-}
+//url builders live in the adapter (platform-specific); re-exported here so the
+//components keep importing everything network-ish from one module
+export function productUrl(item) { return adapter.productUrl(item) }
+export function searchPageUrl(q) { return adapter.searchPageUrl(q) }
 
 //ask the AI assistant from inside the search overlay (2.0.30). Same transport contract
 //as searchRequest: text/plain keeps it a simple request with no CORS preflight, and the

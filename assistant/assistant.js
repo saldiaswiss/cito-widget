@@ -30,9 +30,113 @@
     init();
   }
 
+  //Platform adapter - the only place in this file that knows the host shop system.
+  //ES5 copy of the functions this file needs from the overlay's src/adapter.js (this
+  //file does not go through Vite); keep the two in step, src/adapter.js is the reference
+  //and the contract (CLIENT-CONTRACT.md §9) the list. A host page overrides any part of
+  //it by inlining `window.citoAdapter = {...}` next to citoParams; merged in init().
+  var cscartDefaults = {
+    //product url via the storefront's own url builder when available
+    productUrl: function (item) {
+      if (typeof window.fn_url === 'function') return window.fn_url('products.view?product_id=' + item.product_id);
+      return '?dispatch=products.view&product_id=' + item.product_id;
+    },
+    //a ~360px thumbnail generated on demand by the shop (contract §8b). Resolves to the
+    //url or '' - never rejects.
+    fetchImage: function (productId) {
+      return fetch(window.fn_url ? window.fn_url('cito.image?is_ajax=1') : '?dispatch=cito.image&is_ajax=1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'product_id=' + encodeURIComponent(productId)
+      }).then(function (r) { return r.json(); })
+        .then(function (d) { return (d && d.src) ? d.src : ''; })['catch'](function () { return ''; });
+    },
+    //shop-side translation of a `cito.*` key, or undefined = "use the built-in text".
+    //CS-Cart: Tygh.tr console.errors on unknown keys (probe with the noise muted) and
+    //renders a langvar that was never imported as the literal '_cito.assist_ask'
+    //(leading underscore) - neither counts as a translation.
+    tr: function (key) {
+      var T = window.Tygh;
+      if (!T || typeof T.tr !== 'function') return undefined;
+      var origError = console.error, s;
+      console.error = function () {};
+      try { s = T.tr(key); } finally { console.error = origError; }
+      if (typeof s !== 'string' || !s || s === key || s.charAt(0) === '_') return undefined;
+      return s;
+    },
+    //add one unit of a product to the cart; resolves true when the shop confirmed it.
+    //CS-Cart: the native ajax pipeline updates the minicart and shows the "product
+    //added" notification exactly like the shop's own buttons; without the Tygh runtime
+    //a plain ajax add with no page feedback.
+    addToCart: function (productId) {
+      var $ = window.Tygh && window.Tygh.$;
+      if ($ && $.ceAjax) {
+        return new Promise(function (resolve) {
+          var product_data = {};
+          product_data[productId] = { product_id: productId, amount: 1 };
+          $.ceAjax('request', window.fn_url ? window.fn_url('checkout.add..' + productId) : '?dispatch=checkout.add..' + productId, {
+            method: 'post',
+            data: { product_data: product_data },
+            result_ids: 'cart_status*,wish_list*,account_info*',
+            caching: false,
+            callback: function () { resolve(true); }
+          });
+        });
+      }
+      return fetch(window.fn_url ? window.fn_url('checkout.add..' + productId + '?is_ajax=1') : '?dispatch=checkout.add..' + productId + '&is_ajax=1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'product_data[' + productId + '][product_id]=' + productId + '&product_data[' + productId + '][amount]=1'
+      }).then(function (r) { return r.ok; })['catch'](function () { return false; });
+    },
+    //call `cb` whenever the platform re-renders the cart page by ajax. CS-Cart replaces
+    //the cart table wholesale on quantity changes; commoninit is the event every addon
+    //in the fleet re-initialises on.
+    onCartRerender: function (cb) {
+      if (window.Tygh && window.Tygh.$ && window.Tygh.$.ceEvent) {
+        window.Tygh.$.ceEvent('on', 'ce.commoninit', function () { cb(); });
+      }
+    },
+    //the product id a click on one of the SHOP'S OWN add-to-cart controls refers to, or
+    //0. Most CS-Cart add buttons are named dispatch[checkout.add..<product_id>], but not
+    //all: a product-links addon rewrites the name to the id-less dispatch[checkout.add],
+    //"add all" buttons never carry an id and some themes only set but_id - so fall back
+    //to button_cart_<id> and to the enclosing product form.
+    cartedIdFromClick: function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return 0;
+      var btn = t.closest('[name^="dispatch[checkout.add"], [id^="button_cart_"]');
+      if (!btn) return 0;
+      var m = (btn.getAttribute('name') || '').match(/checkout\.add\.\.(\d+)/);
+      if (!m) m = (btn.id || '').match(/button_cart_(\d+)/);
+      if (m) return parseInt(m[1], 10) || 0;
+      var form = btn.form || (btn.closest ? btn.closest('form') : null);
+      if (!form) return 0;
+      m = ((form.getAttribute('name') || '') + ' ' + (form.id || '')).match(/product_form_(\d+)/);
+      if (m) return parseInt(m[1], 10) || 0;
+      var inp = form.querySelector('input[name^="product_data["][name*="[product_id]"]');
+      return inp ? parseInt(inp.value, 10) || 0 : 0;
+    },
+    //same for the shop's wishlist controls
+    wishedIdFromClick: function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return 0;
+      var btn = t.closest('[name^="dispatch[wishlist.add"]');
+      if (!btn) return 0;
+      var m = (btn.getAttribute('name') || '').match(/wishlist\.add\.\.(\d+)/);
+      if (m) return parseInt(m[1], 10) || 0;
+      var form = btn.form || (btn.closest ? btn.closest('form') : null);
+      if (!form) return 0;
+      m = ((form.getAttribute('name') || '') + ' ' + (form.id || '')).match(/product_form_(\d+)/);
+      return m ? parseInt(m[1], 10) || 0 : 0;
+    }
+  };
+
   function init() {
     if (!window.citoParams || !window.citoAssist) return;
     var A = window.citoAssist, P = window.citoParams;
+    //host overrides are inlined by now (DOM ready), like citoParams
+    var adapter = Object.assign({}, cscartDefaults, window.citoAdapter || {});
     var K_VIEWS = 'citoAssistViews'; //product ids seen this session (signal for /a)
     var K_CHAT = 'citoChatHist', K_CHAT_OPEN = 'citoChatOpen';
     var K_CART = 'citoAssistCart'; //product ids added to the cart this session
@@ -71,14 +175,13 @@
             recs_label_oos: 'Available alternatives', ask_product: 'A question about this product?', ask_prefill: 'I have a question about “%s”: ', add_to_cart: 'Add to cart', added: 'Added', beta: 'Beta' }
     };
     var L = labels[P.lang_code] || labels.en;
-    //shop-side langvars (cito.assist_*, addon.xml) override the built-in labels so
-    //merchants can rephrase them; missing vars come back as '_cito.assist_*' from
-    //CS-Cart (not yet imported on this shop) - keep the built-in text then
-    if (window.Tygh && typeof Tygh.tr === 'function') {
-      for (var lk in L) {
-        var lv = Tygh.tr('cito.assist_' + lk);
-        if (lv && typeof lv === 'string' && lv.charAt(0) !== '_') L[lk] = lv;
-      }
+    //shop-side translations (cito.assist_*; CS-Cart: the addon's langvars) override the
+    //built-in labels so merchants can rephrase them; the adapter answers undefined for
+    //a key the shop has no text for (not yet imported on this shop) - keep the built-in
+    for (var lk in L) {
+      var lv;
+      try { lv = adapter.tr('cito.assist_' + lk); } catch (e) { lv = undefined; }
+      if (lv && typeof lv === 'string') L[lk] = lv;
     }
 
     function sget(k, fallback) {
@@ -107,68 +210,37 @@
       sset(K_CATS, JSON.stringify(cats));
     }
     var carted = jget(K_CART, []);
-    //add-to-cart = strongest interest signal. Most CS-Cart add buttons are named
-    //dispatch[checkout.add..<product_id>], but not all: nl_product_links rewrites the
-    //name to the id-less dispatch[checkout.add], "add all" buttons never carry an id
-    //and some themes only set but_id - so fall back to button_cart_<id> and to the
-    //enclosing product form. A capture-phase listener catches them theme-independently.
-    function cartedIdFromClick(e) {
-      var t = e.target;
-      if (!t || !t.closest) return 0;
-      var btn = t.closest('[name^="dispatch[checkout.add"], [id^="button_cart_"]');
-      if (!btn) return 0;
-      var m = (btn.getAttribute('name') || '').match(/checkout\.add\.\.(\d+)/);
-      if (!m) m = (btn.id || '').match(/button_cart_(\d+)/);
-      if (m) return parseInt(m[1], 10) || 0;
-      var form = btn.form || (btn.closest ? btn.closest('form') : null);
-      if (!form) return 0;
-      m = ((form.getAttribute('name') || '') + ' ' + (form.id || '')).match(/product_form_(\d+)/);
-      if (m) return parseInt(m[1], 10) || 0;
-      var inp = form.querySelector('input[name^="product_data["][name*="[product_id]"]');
-      return inp ? parseInt(inp.value, 10) || 0 : 0;
-    }
-    document.addEventListener('click', function (e) {
-      var id = cartedIdFromClick(e);
-      if (!id) return;
+    //add-to-cart = strongest interest signal. The adapter recognises the shop's own add
+    //buttons theme-independently (adapter.cartedIdFromClick); a capture-phase listener
+    //catches them before any shop handler. Tracked as a SIGNAL only. Until 2.2.0 this
+    //also fired a floating complement panel; that panel had 909 impressions and 0
+    //add-to-carts next to the in-page cart block's 402/5, so the moment now belongs to
+    //the cart page alone.
+    function noteCarted(id) {
       carted = [id].concat(carted.filter(function (v) { return v !== id; })).slice(0, 10);
       sset(K_CART, JSON.stringify(carted));
-      //tracked as a SIGNAL only. Until 2.2.0 this also fired a floating complement
-      //panel; that panel had 909 impressions and 0 add-to-carts next to the in-page
-      //cart block's 402/5, so the moment now belongs to the cart page alone.
+    }
+    document.addEventListener('click', function (e) {
+      var id = 0;
+      try { id = parseInt(adapter.cartedIdFromClick(e), 10) || 0; } catch (err) { id = 0; }
+      if (id) noteCarted(id);
     }, true);
     //wishlist adds are almost as strong a signal as cart adds: tracked as a fresh
     //view (no separate server field needed) so the in-page blocks and the chat see it
     document.addEventListener('click', function (e) {
-      var t = e.target;
-      if (!t || !t.closest) return;
-      var btn = t.closest('[name^="dispatch[wishlist.add"]');
-      if (!btn) return;
-      var m = (btn.getAttribute('name') || '').match(/wishlist\.add\.\.(\d+)/);
-      var id = m ? parseInt(m[1], 10) || 0 : 0;
-      if (!id) {
-        var form = btn.form || (btn.closest ? btn.closest('form') : null);
-        if (form) {
-          m = ((form.getAttribute('name') || '') + ' ' + (form.id || '')).match(/product_form_(\d+)/);
-          if (m) id = parseInt(m[1], 10) || 0;
-        }
-      }
+      var id = 0;
+      try { id = parseInt(adapter.wishedIdFromClick(e), 10) || 0; } catch (err) { id = 0; }
       if (!id) return;
       views = [id].concat(views.filter(function (v) { return v !== id; })).slice(0, 15);
       sset(K_VIEWS, JSON.stringify(views));
     }, true);
 
     //---- shared bits ----
-    function productUrl(id) {
-      if (typeof window.fn_url === 'function') return window.fn_url('products.view?product_id=' + id);
-      return '?dispatch=products.view&product_id=' + id;
-    }
+    //lazy card image through the adapter (contract §8b): the index often has no image
+    //url at sync time, the shop generates a thumbnail on demand
     function fetchImage(id, img, ph) {
-      fetch(window.fn_url ? window.fn_url('cito.image?is_ajax=1') : '?dispatch=cito.image&is_ajax=1', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'product_id=' + encodeURIComponent(id)
-      }).then(function (r) { return r.json(); }).then(function (d) {
-        if (d && d.src) { img.src = d.src; img.style.display = ''; ph.style.display = 'none'; }
+      Promise.resolve().then(function () { return adapter.fetchImage(id); }).then(function (src) {
+        if (src && typeof src === 'string') { img.src = src; img.style.display = ''; ph.style.display = 'none'; }
       })['catch'](function () {});
     }
     function el(tag, cls, parent) {
@@ -187,7 +259,7 @@
     }
     function renderCard(item, parent, kind) {
       var a = el('a', 'cito-assist__item', parent);
-      a.href = productUrl(item.product_id);
+      a.href = adapter.productUrl(item);
       a.addEventListener('click', function () {
         beacon({ ev: 'click', k: kind || 'chat', product_id: item.product_id });
       });
@@ -212,13 +284,14 @@
       add.type = 'button';
       add.setAttribute('aria-label', L.add_to_cart + ': ' + (item.name || ''));
       add.title = L.add_to_cart;
-      //the capture-phase carted listener above matches this name pattern, so widget
-      //adds count as cart signals exactly like the shop's own buttons
-      add.setAttribute('name', 'dispatch[checkout.add..' + item.product_id + ']');
       add.innerHTML = cartSvg;
       add.addEventListener('click', function (e) {
         e.preventDefault(); //the button sits inside the product link
         e.stopPropagation();
+        //widget adds count as cart signals exactly like the shop's own buttons (before
+        //the adapter this button carried CS-Cart's dispatch[checkout.add..] name so the
+        //capture listener above picked it up; now it is noted directly)
+        noteCarted(item.product_id);
         addToCart(item.product_id, add, kind, item.price);
       });
     }
@@ -234,27 +307,10 @@
         btn.setAttribute('aria-label', L.added);
         btn.title = L.added;
       };
-      var $ = window.Tygh && window.Tygh.$;
-      if ($ && $.ceAjax) {
-        //native path: CS-Cart's own ajax pipeline updates the minicart and shows the
-        //"product added" notification exactly like the shop's add-to-cart buttons
-        var product_data = {};
-        product_data[id] = { product_id: id, amount: 1 };
-        $.ceAjax('request', window.fn_url ? window.fn_url('checkout.add..' + id) : '?dispatch=checkout.add..' + id, {
-          method: 'post',
-          data: { product_data: product_data },
-          result_ids: 'cart_status*,wish_list*,account_info*',
-          caching: false,
-          callback: function () { done(true); }
-        });
-        return;
-      }
-      //fallback without the Tygh runtime: plain ajax add, button state only
-      fetch(window.fn_url ? window.fn_url('checkout.add..' + id + '?is_ajax=1') : '?dispatch=checkout.add..' + id + '&is_ajax=1', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'product_data[' + id + '][product_id]=' + id + '&product_data[' + id + '][amount]=1'
-      }).then(function (r) { done(r.ok); })['catch'](function () { done(false); });
+      //the platform's own add (adapter): on CS-Cart the native ajax pipeline updates the
+      //minicart and shows the "product added" notification like the shop's own buttons
+      Promise.resolve().then(function () { return adapter.addToCart(id); })
+        .then(function (ok) { done(!!ok); })['catch'](function () { done(false); });
     }
     function apiPost(url, payload) {
       return fetch(url, {
@@ -788,11 +844,9 @@
         })['catch'](function () { /* the shop never sees an assistant error */ });
     }
     initCartBlock();
-    //CS-Cart replaces the cart table wholesale on quantity changes; commoninit is the
-    //event every addon in the fleet re-initialises on
-    if (window.Tygh && Tygh.$ && Tygh.$.ceEvent) {
-      Tygh.$.ceEvent('on', 'ce.commoninit', function () { initCartBlock(); });
-    }
+    //the platform re-renders the cart table by ajax on quantity changes (CS-Cart:
+    //wholesale, on commoninit) - the adapter tells us when, the block is rebuilt then
+    try { adapter.onCartRerender(initCartBlock); } catch (e) { /* no re-render hook on this host */ }
 
     //---- in-page alternatives on a sold-out product page (2.2.0) ----
     //Same container pattern and the same box as the cart block: the hook template
