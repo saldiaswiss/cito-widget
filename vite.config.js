@@ -21,8 +21,9 @@ function inlineCss() {
   }
 }
 
-//builds the fullscreen overlay widget into the addon's js dir:
-//  js/addons/nl_cito/widget.js
+//builds the fullscreen overlay widget into dist/widget.js; the postbuild script
+//(scripts/copy-plain.mjs) adds assistant.js and func.js next to it, so the three
+//files the platform clients vendor all come out of dist/ (tools/sync-clients.sh)
 export default defineConfig({
   plugins: [vue(), inlineCss()],
   define: {
@@ -38,8 +39,8 @@ export default defineConfig({
       formats: ['iife'],
       fileName: () => 'widget.js',
     },
-    outDir: '../js/addons/nl_cito',
-    emptyOutDir: false,
+    outDir: 'dist',
+    emptyOutDir: true,
     cssCodeSplit: false,
     rollupOptions: {
       output: { assetFileNames: 'widget.[ext]' },
