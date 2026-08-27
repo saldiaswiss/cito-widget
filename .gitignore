@@ -141,3 +141,13 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# per-machine agent notes (see CLAUDE.md)
+/.ai/local-env.md
+
+# AI/agent instruction files stay local in this PUBLIC repo (never committed)
+/CLAUDE.md
+/AGENTS.md
+/START-HERE.md
+/.ai/
+/*.code-workspace
