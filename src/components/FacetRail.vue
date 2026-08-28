@@ -3,7 +3,7 @@ import { reactive } from 'vue'
 import { store, tr, search, resetFilters, hasActiveFilters } from '../store.js'
 import PriceSlider from './PriceSlider.vue'
 
-//long value lists (a Tamiya search on a shop listed 25+ brands) collapse to the
+//long value lists (a brand-heavy search on one shop listed 25+ brands) collapse to the
 //first 10 plus a localized "see all" line; categories deliberately stay FULL - they
 //are the primary navigation. Purely client-side. A SELECTED value below the fold is
 //always kept visible, so an active filter can never hide from its own list.
@@ -171,7 +171,7 @@ function reset() {
   padding: 4px 0; cursor: pointer; font-size: 13px;
 }
 /* !important: shop themes restyle native checkboxes with higher specificity
-   (one shop: body[class*="screen"] input[type="checkbox"] { appearance:none; width:22px; ... })
+   (one shop's theme: body[class*="screen"] input[type="checkbox"] { appearance:none; width:22px; ... })
    which resurrects this deliberately-hidden input and indents the whole row */
 .cito-rail__item input { position: absolute !important; opacity: 0 !important; width: 1px !important; height: 1px !important; margin: 0 !important; }
 .cito-rail__box {

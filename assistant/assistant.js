@@ -396,7 +396,7 @@
       '.cito-cartrecs__msg{padding:7px 2px 4px;font-size:13.5px;line-height:1.45;color:#1c1c1e}' +
       //min() lets a track shrink BELOW its ideal width when the container is narrower -
       //without it three cards demand ~700px and burst out of a product page's buy
-      //column (a shop 2026-08-22: the block covered the product image and ran off
+      //column (a shop, 2026-08-22: the block covered the product image and ran off
       //the right edge of the page). In a wide container nothing changes.
       '.cito-cartrecs__cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr));'
         + 'gap:2px;min-width:0}' +

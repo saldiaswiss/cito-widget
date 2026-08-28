@@ -66,7 +66,7 @@ onBeforeUnmount(() => { if (observer) observer.disconnect() })
         <span v-if="item.display_price" class="cito-card__price">{{ item.display_price }}</span>
         <!-- three states, not two: a product whose whole stock sits at the supplier used to
              claim "in stock" here while its own detail page said "in stock at the supplier,
-             delivery approx. 3 working days" (customer report, a shop 2026-08-14). The
+             delivery approx. 3 working days" (customer report, a shop, 2026-08-14). The
              index now carries the supplier share separately; stock_ext is absent on tables
              that have not been migrated, and then this behaves exactly as before. -->
         <span v-if="Number(item.stock) > 0" class="cito-card__stock"

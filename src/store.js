@@ -212,7 +212,7 @@ export function search(append = false) {
       //API), but the SAME query keeps the last rail (2.4.2). The server omits `facets`
       //when its facet pass fails (2026-08-25..26: every price-filtered search, s.php
       //eff_price alias) - unmounting the rail then took the mobile filter drawer AND the
-      //only way to undo the filter away the moment the slider was released (a shop)
+      //only way to undo the filter away the moment the slider was released (a shop, 2026-08-26)
       if (data.facets) { store.facets = data.facets; store.facetsQ = q }
       else if (!append && q !== store.facetsQ) { store.facets = null; store.facetsQ = '' }
       if (!append) {
