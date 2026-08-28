@@ -12,9 +12,9 @@ The API these scripts talk to is described in the Cito server's `docs/CLIENT-CON
 ## Status
 
 Seeded 2026-08-27 from the CS-Cart addon `nl_cito` 2.4.2; the platform adapter landed the
-same day. **The addon copy (`cs-cart-addons/cito/widget`) stays canonical until the
-adapter build has been verified on a CS-Cart shop** and the addon is switched to consume
-this repo's build output. Until then, do not edit both.
+same day and was verified on a CS-Cart shop on 2026-08-28. **This repo is the source**: the
+CS-Cart addon vendors `dist/` from here since `nl_cito` 2.4.3, and the WordPress plugin
+vendors the same files.
 
 ## Build
 
