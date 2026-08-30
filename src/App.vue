@@ -414,6 +414,9 @@ html.cito-overlay-open, html.cito-overlay-open body { overflow: hidden !importan
   width: 100%; padding: 11px 40px 11px 42px;
   border: 1.5px solid var(--line); border-radius: 12px;
   font-size: 16px; color: var(--ink); background: var(--soft);
+  /* themes put an inset shadow on every text input (Storefront does) - the field
+     then reads as sunken next to the flat cards */
+  box-shadow: none; -webkit-appearance: none; appearance: none;
   transition: border-color .12s, background .12s;
 }
 .cito-head__input:focus { border-color: var(--acc); background: #fff; outline: none; }

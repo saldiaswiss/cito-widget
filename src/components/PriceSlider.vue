@@ -65,7 +65,7 @@ const fillStyle = computed(() => {
   width: 74px; padding: 6px 8px;
   border: 1px solid var(--line); border-radius: 8px;
   font-size: 13px; font-variant-numeric: tabular-nums;
-  color: var(--ink); background: #fff;
+  color: var(--ink); background: #fff; box-shadow: none;
 }
 .cito-slider__inputs input:focus-visible { outline: 2px solid var(--acc); outline-offset: 1px; border-color: transparent; }
 .cito-slider__dash { flex: 0 0 10px; height: 1px; background: var(--muted); }

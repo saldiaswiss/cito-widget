@@ -156,15 +156,24 @@ watch(() => ai.msgs.length, () => {
 /* the follow-up composer: quiet enough not to compete with the search field above it,
    present enough that nobody has to wonder whether they may answer back */
 .cito-ai__ask { display: flex; gap: 8px; margin-top: 12px; }
-.cito-ai__input {
-  flex: 1; min-width: 0;
+/* The parent class is in the selector on purpose. Shop themes style the bare
+   `input[type=text]`, and Storefront's :focus rule (0,2,1) outranks a plain scoped
+   class (0,2,0): the field turned grey the moment a visitor started typing and read
+   as disabled (reported live 2026-08-30). Every part of the box is declared here,
+   including the ones the theme only sets on the base element. */
+.cito-ai__ask .cito-ai__input {
+  flex: 1; min-width: 0; box-sizing: border-box;
   padding: 9px 13px; border-radius: 10px;
   border: 1px solid #e6ddfa; background: #fff; color: var(--ink);
+  box-shadow: none; -webkit-appearance: none; appearance: none;
   font-size: 16px; /* under 16px iOS zooms the whole overlay on focus */
   line-height: 1.3;
 }
-.cito-ai__input:focus { border-color: #a78bfa; outline: none; }
-.cito-ai__input::placeholder { color: #9a93a8; }
+.cito-ai__ask .cito-ai__input:focus {
+  background: #fff; border-color: #a78bfa; outline: none;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, .22);
+}
+.cito-ai__ask .cito-ai__input::placeholder { color: #9a93a8; opacity: 1; }
 .cito-ai__send {
   flex: none; padding: 0 16px; border-radius: 10px; cursor: pointer;
   border: 1px solid #5b21b6; background: #5b21b6; color: #fff;
