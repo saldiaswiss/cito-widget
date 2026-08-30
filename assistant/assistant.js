@@ -406,8 +406,11 @@
       //without it three cards demand ~700px and burst out of a product page's buy
       //column (a shop, 2026-08-22: the block covered the product image and ran off
       //the right edge of the page). In a wide container nothing changes.
+      //16px column gap, not 2: the add button sits at the card's right edge
+      //(margin-left:auto) and 2px plus the item's 6px padding left it touching the
+      //neighbouring card's image - it read as belonging to the wrong product
       '.cito-cartrecs__cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr));'
-        + 'gap:2px;min-width:0}' +
+        + 'gap:10px 16px;min-width:0}' +
       '.cito-cartrecs__box{max-width:100%;box-sizing:border-box}' +
       '.cito-cartrecs__cards .cito-assist__item{min-width:0}' +
       //sold-out product page: same box as the cart block, so both in-page surfaces
