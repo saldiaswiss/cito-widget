@@ -931,10 +931,13 @@
         var opener = L.ask_prefill.indexOf('%s') !== -1
           ? L.ask_prefill.replace('%s', askName)
           : L.ask_prefill + ' ' + askName + '.';
-        //a second click on the same button must not buy a second identical answer
-        var h = chatHist();
-        var last = h.length ? h[h.length - 1] : null;
-        if (last && last.r === 'u' && last.t === opener) { chatInput.focus(); return; }
+        //a second click on the same button must not buy a second identical answer. The
+        //LAST entry is the assistant's reply by then, so compare against the last VISITOR
+        //turn - a click after the visitor has asked something else re-anchors on purpose
+        //and is allowed through.
+        var h = chatHist(), lastUser = null;
+        for (var i = h.length - 1; i >= 0; i--) { if (h[i].r === 'u') { lastUser = h[i]; break; } }
+        if (lastUser && lastUser.t === opener) { chatInput.focus(); return; }
         chatInput.value = opener;
         sendMsg();
         //sendMsg bails while a turn is in flight and leaves the box filled - then it
