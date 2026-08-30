@@ -160,6 +160,13 @@ function reset() {
   background: none; border: none; padding: 0;
   color: var(--acc-ink); cursor: pointer; font-size: 12px;
 }
+/* the reset button only exists while a filter is active, and with no line-height of
+   its own it takes the host theme's (Storefront: 1.618 -> 19.4px against the eyebrow's
+   14.9px), which made the header row 4.6px taller the moment a filter was ticked and
+   pushed the whole rail down. Both children share one line-height, so the row is the
+   same height with and without the button. */
+.cito-rail__head .cito-rail__eyebrow,
+.cito-rail__reset { line-height: 18px; }
 .cito-rail__reset:hover { text-decoration: underline; }
 .cito-rail__more {
   background: none; border: none; padding: 4px 0 0 25px;
