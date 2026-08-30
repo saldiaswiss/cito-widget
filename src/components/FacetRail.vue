@@ -130,7 +130,10 @@ function reset() {
       <PriceSlider />
     </section>
 
+    <!-- the stock toggle is a single boolean, not a facet group, so it carried no eyebrow -
+         but sitting under the price section it read as a price option. Its own heading now. -->
     <section class="cito-rail__group">
+      <span class="cito-rail__eyebrow">{{ tr('cito.availability') }}</span>
       <label class="cito-rail__item">
         <input type="checkbox" :checked="store.filters.in_stock" @change="toggleStock">
         <span class="cito-rail__box" aria-hidden="true"></span>

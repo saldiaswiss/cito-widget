@@ -108,6 +108,7 @@ const TR_DEFAULTS = {
   'cito.categories': 'Categories',
   'cito.brands': 'Brands',
   'cito.price': 'Price',
+  'cito.availability': 'Availability',
   'cito.in_stock_only': 'In stock only',
   'cito.reset_filters': 'Reset filters',
   'cito.show_more': 'Show more products',
