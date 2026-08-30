@@ -375,7 +375,9 @@
       '.cito-assist__info{min-width:0;display:flex;flex-direction:column;gap:1px}' +
       '.cito-assist__name{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}' +
       '.cito-assist__price{font-weight:650;font-size:13px}' +
-      '.cito-assist__add{margin-left:auto;flex:none;width:32px;height:32px;border:1px solid #ddd6f3;border-radius:9px;' +
+      //padding:0 like the fab - a fixed 32px box, so the host theme's button padding
+      //would squeeze the cart icon out of it (Storefront left it 2px of content)
+      '.cito-assist__add{margin-left:auto;flex:none;width:32px;height:32px;padding:0;border:1px solid #ddd6f3;border-radius:9px;' +
       'background:#fff;color:#5b21b6;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px}' +
       '.cito-assist__add svg{width:16px;height:16px}' +
       '.cito-assist__add:hover{background:#f3eefe}' +
