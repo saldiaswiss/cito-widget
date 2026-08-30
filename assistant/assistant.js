@@ -380,8 +380,10 @@
       '.cito-assist__add svg{width:16px;height:16px}' +
       '.cito-assist__add:hover{background:#f3eefe}' +
       '.cito-assist__add:disabled{opacity:.55;cursor:default;background:#fff}' +
-      //floating button
-      '.cito-fab{position:fixed;right:16px;bottom:calc(16px + var(--cito-off,0px));z-index:99997;width:52px;height:52px;border-radius:50%;border:0;cursor:pointer;' +
+      //floating button. padding:0 - shop themes style the bare `button` (WordPress
+      //Storefront pads it by 1.41575em) and the fab is a fixed 52px box, so a
+      //leaked padding squeezes the 24px sparkle to a sliver
+      '.cito-fab{position:fixed;right:16px;bottom:calc(16px + var(--cito-off,0px));z-index:99997;width:52px;height:52px;border-radius:50%;border:0;padding:0;cursor:pointer;' +
       'background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;display:flex;align-items:center;justify-content:center;' +
       'box-shadow:0 8px 24px rgba(91,33,182,.45);transition:transform .15s ease}' +
       '.cito-fab:hover{transform:scale(1.06)}' +

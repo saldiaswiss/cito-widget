@@ -338,6 +338,14 @@ const dymParts = computed(() => {
 <style>
 /* unscoped on purpose: body scroll lock while the overlay is open */
 html.cito-overlay-open, html.cito-overlay-open body { overflow: hidden !important; }
+
+/* Host-theme padding reset. Shop themes style the bare `button` element - WordPress
+   Storefront ships `button { padding: .618em 1.41575em }` - and our buttons size
+   themselves (fixed width/height, border-box), so a leaked padding eats the whole
+   content box and clips the icon inside it to zero width. Unscoped on purpose: with no
+   [data-v] attribute this stays at specificity (0,1,1), under every scoped `.cito-*`
+   rule, so the buttons that DO set their own padding keep it whatever the source order. */
+.cito-overlay button { padding: 0; }
 </style>
 
 <style scoped>

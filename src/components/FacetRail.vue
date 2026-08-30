@@ -122,7 +122,10 @@ function reset() {
         @click="expandedGroups['f' + ft.feature_id] = true">{{ tr('cito.see_all') }} ({{ ft.values.length }})</button>
     </section>
 
-    <section v-if="store.facets.price" class="cito-rail__group">
+    <!-- same condition as PriceSlider's own v-if: a result set whose products all cost
+         the same (one hit, or one price) has no range to drag, and an eyebrow with
+         nothing under it made the standalone stock toggle below read as a price option -->
+    <section v-if="store.facets.price && store.facets.price.max > store.facets.price.min" class="cito-rail__group">
       <span class="cito-rail__eyebrow">{{ tr('cito.price') }}</span>
       <PriceSlider />
     </section>
