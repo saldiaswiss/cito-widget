@@ -372,6 +372,13 @@ html.cito-overlay-open, html.cito-overlay-open body { overflow: hidden !importan
   font-size: 14px; line-height: 1.35;
 }
 .cito-overlay :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+/* ...except the result cards. They sit flush against `.cito-main`, which asks only for
+   `overflow-y: auto` - and a box with a non-visible overflow on one axis computes the
+   other to `auto` too, so it clips horizontally as well. The 2px-offset ring is drawn
+   outside the card's box and the leftmost (in list view: every) card loses its ring on
+   the container edge. Drawn inside instead: same ring, nothing to clip. Specificity
+   (0,4,0) so it beats the generic rule above whatever order the chunks land in. */
+.cito-grid .cito-card:focus-visible { outline-offset: -2px; }
 
 .cito-overlay__backdrop { position: absolute; inset: 0; background: rgba(20, 20, 24, .55); }
 .cito-overlay__panel {
