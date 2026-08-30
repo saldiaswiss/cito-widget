@@ -151,28 +151,28 @@
             error: 'Das hat gerade nicht geklappt – versuch es bitte noch einmal.',
             tech_error: 'Ich habe gerade ein technisches Problem beim Abrufen der Antwort – bitte versuch es gleich noch einmal.',
             recs_label: 'Empfehlungen für dich', recs_label_cart: 'Passend zu deinem Warenkorb',
-            recs_label_oos: 'Verfügbare Alternativen', ask_product: 'Frage zu diesem Produkt?', ask_prefill: 'Ich habe eine Frage zu «%s»: ', add_to_cart: 'In den Warenkorb', added: 'Hinzugefügt', beta: 'Beta' },
+            recs_label_oos: 'Verfügbare Alternativen', ask_product: 'Frage zu diesem Produkt?', ask_prefill: 'Ich habe eine Frage zu «%s».', add_to_cart: 'In den Warenkorb', added: 'Hinzugefügt', beta: 'Beta' },
       fr: { label: 'Assistant IA', close: 'Fermer', open_chat: 'Ouvrir l’assistant IA',
             placeholder: 'Décris ce que tu cherches…', send: 'Envoyer',
             greeting: 'Salut ! Je te propose des produits adaptés et réellement en stock, je t’aide à choisir – et tu peux aussi me demander où en est ta commande. Que cherches-tu ?',
             error: 'Cela n’a pas fonctionné – réessaie, s’il te plaît.',
             tech_error: 'J’ai un problème technique pour récupérer la réponse – merci de réessayer dans un instant.',
             recs_label: 'Recommandations pour toi', recs_label_cart: 'Assorti à ton panier',
-            recs_label_oos: 'Alternatives disponibles', ask_product: 'Une question sur ce produit ?', ask_prefill: 'J’ai une question sur « %s » : ', add_to_cart: 'Ajouter au panier', added: 'Ajouté', beta: 'Bêta' },
+            recs_label_oos: 'Alternatives disponibles', ask_product: 'Une question sur ce produit ?', ask_prefill: 'J’ai une question sur « %s ».', add_to_cart: 'Ajouter au panier', added: 'Ajouté', beta: 'Bêta' },
       it: { label: 'Assistente IA', close: 'Chiudi', open_chat: 'Apri l’assistente IA',
             placeholder: 'Descrivi cosa cerchi…', send: 'Invia',
             greeting: 'Ciao! Ti propongo prodotti adatti e davvero disponibili, ti aiuto a scegliere – e puoi anche chiedermi lo stato del tuo ordine. Cosa cerchi?',
             error: 'Qualcosa è andato storto – riprova per favore.',
             tech_error: 'Ho un problema tecnico nel recuperare la risposta – riprova tra un attimo, per favore.',
             recs_label: 'Consigli per te', recs_label_cart: 'Abbinati al tuo carrello',
-            recs_label_oos: 'Alternative disponibili', ask_product: 'Hai una domanda su questo prodotto?', ask_prefill: 'Ho una domanda su «%s»: ', add_to_cart: 'Aggiungi al carrello', added: 'Aggiunto', beta: 'Beta' },
+            recs_label_oos: 'Alternative disponibili', ask_product: 'Hai una domanda su questo prodotto?', ask_prefill: 'Ho una domanda su «%s».', add_to_cart: 'Aggiungi al carrello', added: 'Aggiunto', beta: 'Beta' },
       en: { label: 'AI assistant', close: 'Close', open_chat: 'Open AI assistant',
             placeholder: 'Describe what you’re looking for…', send: 'Send',
             greeting: 'Hi! I suggest products that fit you and are actually in stock, help you choose – and you can also ask me about the status of your order. What are you looking for?',
             error: 'That didn’t work just now – please try again.',
             tech_error: 'I’m having a technical problem fetching the answer – please try again in a moment.',
             recs_label: 'Recommendations for you', recs_label_cart: 'Goes well with your cart',
-            recs_label_oos: 'Available alternatives', ask_product: 'A question about this product?', ask_prefill: 'I have a question about “%s”: ', add_to_cart: 'Add to cart', added: 'Added', beta: 'Beta' }
+            recs_label_oos: 'Available alternatives', ask_product: 'A question about this product?', ask_prefill: 'I have a question about “%s”.', add_to_cart: 'Add to cart', added: 'Added', beta: 'Beta' }
     };
     var L = labels[P.lang_code] || labels.en;
     //shop-side translations (cito.assist_*; CS-Cart: the addon's langvars) override the
@@ -921,18 +921,25 @@
       btn.addEventListener('click', function () {
         beacon({ ev: 'click', k: 'ask', product_id: askPid });
         openChat();
-        //start the sentence: an empty box right after clicking "a question about this
-        //product?" makes the visitor type the product name again, and that name in the
-        //message is also what the retrieval legs rank on (page_pid grounds the server
-        //side, the model ranks on the text). Caret at the end, they just keep typing.
-        if (chatInput && askName) {
-          var prefill = L.ask_prefill.indexOf('%s') !== -1
-            ? L.ask_prefill.replace('%s', askName)
-            : L.ask_prefill + ' ' + askName + ': ';
-          chatInput.value = prefill;
-          chatInput.focus();
-          try { chatInput.setSelectionRange(prefill.length, prefill.length); } catch (e) {}
-        }
+        //The opener is SENT, not typed into (2.2.1). It used to be a prefilled sentence
+        //fragment ending in a colon, and 28 of 48 uses were sent with nothing after it -
+        //visitors read a filled box as a finished message. It is a whole sentence now and
+        //goes out on the click: the visitor gets an answer without typing, and the server
+        //answers it grounded in this product (page_pid + the opener rule). The product
+        //name stays in the text, so the retrieval legs still rank on it.
+        if (!chatInput || !askName) return;//nothing to say without a name: just the panel
+        var opener = L.ask_prefill.indexOf('%s') !== -1
+          ? L.ask_prefill.replace('%s', askName)
+          : L.ask_prefill + ' ' + askName + '.';
+        //a second click on the same button must not buy a second identical answer
+        var h = chatHist();
+        var last = h.length ? h[h.length - 1] : null;
+        if (last && last.r === 'u' && last.t === opener) { chatInput.focus(); return; }
+        chatInput.value = opener;
+        sendMsg();
+        //sendMsg bails while a turn is in flight and leaves the box filled - then it
+        //behaves like the old prefill and the visitor can send it himself
+        if (chatInput) chatInput.focus();
       });
       host.style.display = '';
       whenVisible(host, function () { beacon({ ev: 'imp', k: 'ask', product_ids: [askPid] }); });
