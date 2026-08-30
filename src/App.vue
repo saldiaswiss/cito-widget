@@ -346,6 +346,14 @@ html.cito-overlay-open, html.cito-overlay-open body { overflow: hidden !importan
    [data-v] attribute this stays at specificity (0,1,1), under every scoped `.cito-*`
    rule, so the buttons that DO set their own padding keep it whatever the source order. */
 .cito-overlay button { padding: 0; }
+
+/* ...and the theme's focus ring. Storefront paints `button:focus { outline: 2px solid
+   #7f54b3 }` - plain :focus, so it fires on a MOUSE click too - and the view switch's
+   `overflow: hidden` clips that ring down to a violet sliver along the button's inner
+   edge. Suppressed at (0,2,1), which stays under our own `:focus-visible` ring at
+   (0,3,0), so keyboard focus is still shown (in --acc) and only the mouse-click
+   artefact goes away. */
+.cito-overlay :is(a, button, input, textarea, select):focus { outline: none; }
 </style>
 
 <style scoped>
