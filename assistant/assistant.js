@@ -380,7 +380,7 @@
       '.cito-assist__add{margin-left:auto;flex:none;width:32px;height:32px;padding:0;border:1px solid #ddd6f3;border-radius:9px;' +
       'background:#fff;color:#5b21b6;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px}' +
       '.cito-assist__add svg{width:16px;height:16px}' +
-      '.cito-assist__add:hover{background:#f3eefe}' +
+      '.cito-assist__add:hover{background:#f3eefe;color:#5b21b6}' +
       '.cito-assist__add:disabled{opacity:.55;cursor:default;background:#fff}' +
       //floating button. padding:0 - shop themes style the bare `button` (WordPress
       //Storefront pads it by 1.41575em) and the fab is a fixed 52px box, so a
@@ -388,7 +388,11 @@
       '.cito-fab{position:fixed;right:16px;bottom:calc(16px + var(--cito-off,0px));z-index:99997;width:52px;height:52px;border-radius:50%;border:0;padding:0;cursor:pointer;' +
       'background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;display:flex;align-items:center;justify-content:center;' +
       'box-shadow:0 8px 24px rgba(91,33,182,.45);transition:transform .15s ease}' +
-      '.cito-fab:hover{transform:scale(1.06)}' +
+      //hover colours are declared even where they do not change: the shop theme's
+      //`button:hover{color:#333}` is (0,1,1) and outranks our single-class base
+      //rules, so a button that only sets its colour at rest loses it on hover -
+      //which turned the fab's currentColor sparkle black on WooCommerce Storefront
+      '.cito-fab:hover{transform:scale(1.06);color:#fff}' +
       '.cito-fab svg{width:24px;height:24px}' +
       '.cito-fab__dot{position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#ef4444;border:2px solid #fff}' +
       //in-page block on the cart page (2.1.8): same violet register as the panel's
@@ -446,6 +450,7 @@
       '.cito-chat__input{flex:1;border:1px solid #dcdce0;border-radius:10px;padding:9px 12px;font-size:13.5px;outline:none;min-width:0}' +
       '.cito-chat__input:focus{border-color:#7c3aed}' +
       '.cito-chat__send{border:0;border-radius:10px;background:#5b21b6;color:#fff;font-weight:600;padding:0 15px;cursor:pointer}' +
+      '.cito-chat__send:hover{background:#5b21b6;color:#fff}' +
       '.cito-chat__send:disabled{opacity:.5;cursor:default}' +
       '.cito-chat__typing{display:inline-flex;gap:4px;padding:11px 12px}' +
       '.cito-chat__typing i{width:6px;height:6px;border-radius:50%;background:#b9a8e6;animation:citoBlink 1.2s infinite}' +
@@ -473,6 +478,7 @@
       '.cito-chat__jump{position:absolute;left:50%;bottom:58px;z-index:2;border:0;cursor:pointer;' +
       'transform:translateX(-50%);background:#5b21b6;color:#fff;font-size:12px;font-weight:600;' +
       'border-radius:999px;padding:6px 13px;box-shadow:0 4px 14px rgba(91,33,182,.35)}' +
+      '.cito-chat__jump:hover{background:#5b21b6;color:#fff}' +
       //opposite corner, for shops that already occupy the default one (one shop keeps
       //its cookie icon bottom left, other shops put theirs bottom right)
       '.cito-side-left .cito-assist,.cito-side-left .cito-chat,.cito-side-left .cito-fab,' +
