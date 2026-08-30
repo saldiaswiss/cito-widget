@@ -813,8 +813,15 @@
       //on every quantity change, and counting that twice inflates exactly the
       //denominator this surface is supposed to be judged on
       renderRecBox(host, L.recs_label_cart, message, items, 'cartpage', logImpression);
+      if (!items || !items.length) return;
+      //contract §9: the client renders the hook empty AND HIDDEN, we unhide it - like
+      //the oos and product-ask surfaces below. Unhiding only #cito_cart_recs_row was a
+      //CS-Cart assumption (there the hook sits in a hidden <tr> of the cart table): on
+      //a host that renders the documented div alone, the block was filled and then
+      //stayed display:none forever.
+      host.style.display = '';
       var row = document.getElementById('cito_cart_recs_row');
-      if (row && items && items.length) row.style.display = '';
+      if (row) row.style.display = '';
     }
     function initCartBlock() {
       var host = document.getElementById('cito_cart_recs');

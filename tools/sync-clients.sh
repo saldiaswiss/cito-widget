@@ -38,6 +38,11 @@ DIRTY=""; git diff --quiet HEAD -- src assistant dropdown vite.config.js package
 STAMP="/* cito-widget ${HASH}${DIRTY} $(date -u +%Y-%m-%dT%H:%MZ) */"
 echo "source: ${HASH}${DIRTY}"
 
+# drop the `/* cito-widget ... */` header line a previous sync prepended, so the
+# comparison below is source-vs-source. awk, not sed: BSD sed (macOS - this repo is
+# worked on from two machines) rejects `1{/re/d}` without a separator before the brace.
+strip_stamp() { awk 'NR==1 && /^\/\* cito-widget /{next} {print}' "$1"; }
+
 # copy one built file into a client dir with the header line prepended; prints the
 # diff stat against what the client had (header line excluded, so a rebuild that
 # changed nothing reads as "unchanged")
@@ -47,8 +52,8 @@ copy_one() {
   if [ ! -d "$dest_dir" ]; then echo "  $dest_dir: directory missing, skipped" >&2; return; fi
   local status="new"
   if [ -f "$dest" ]; then
-    if cmp -s <(sed '1{/^\/\* cito-widget /d}' "$dest") "$src"; then status="unchanged"
-    else status="changed ($(diff <(sed '1{/^\/\* cito-widget /d}' "$dest") "$src" | grep -c '^[<>]' || true) lines differ)"; fi
+    if cmp -s <(strip_stamp "$dest") "$src"; then status="unchanged"
+    else status="changed ($(diff <(strip_stamp "$dest") "$src" | grep -c '^[<>]' || true) lines differ)"; fi
   fi
   echo "  $dest: $status"
   if [ "$DRY" = 0 ] && [ "$status" != "unchanged" ]; then
