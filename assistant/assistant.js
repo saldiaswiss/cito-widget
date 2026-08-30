@@ -450,8 +450,19 @@
       '.cito-chat__bubble--u{background:#5b21b6;color:#fff;border-bottom-right-radius:5px;align-self:flex-end}' +
       '.cito-chat__cards{align-self:stretch;display:flex;flex-direction:column;background:#fafafa;border:1px solid #f0f0f2;border-radius:12px;padding:2px 4px}' +
       '.cito-chat__foot{display:flex;gap:8px;padding:10px;border-top:1px solid #f0f0f2}' +
-      '.cito-chat__input{flex:1;border:1px solid #dcdce0;border-radius:10px;padding:9px 12px;font-size:13.5px;outline:none;min-width:0}' +
-      '.cito-chat__input:focus{border-color:#7c3aed}' +
+      //the shop's own form styling reaches this field: Storefront paints every
+      //`input[type=text]` grey with an inset shadow and no border (0,1,1), and its
+      //:focus rule (0,2,1) darkens it further while the visitor types - the field read
+      //as disabled (reported live 2026-08-30). The panel is ours, so the input owns its
+      //whole box: compound selectors outrank the theme's attribute ones, and the
+      //theme's focus outline is REPLACED by a ring, never just dropped.
+      '.cito-chat__foot input.cito-chat__input{flex:1;min-width:0;box-sizing:border-box;' +
+      '-webkit-appearance:none;appearance:none;background:#fff;color:#1c1c1e;' +
+      'border:1px solid #dcdce0;border-radius:10px;box-shadow:none;padding:9px 12px;' +
+      'font-size:13.5px;font-family:inherit;line-height:1.4;outline:none}' +
+      '.cito-chat__foot input.cito-chat__input::placeholder{color:#8e8e93;opacity:1}' +
+      '.cito-chat__foot input.cito-chat__input:focus{background:#fff;border-color:#7c3aed;' +
+      'box-shadow:0 0 0 3px rgba(124,58,237,.15);outline:none}' +
       '.cito-chat__send{border:0;border-radius:10px;background:#5b21b6;color:#fff;font-weight:600;padding:0 15px;cursor:pointer}' +
       '.cito-chat__send:hover{background:#5b21b6;color:#fff}' +
       '.cito-chat__send:disabled{opacity:.5;cursor:default}' +
