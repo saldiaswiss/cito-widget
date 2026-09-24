@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, nextTick } from 'vue'
 import ProductCard from './ProductCard.vue'
-import { ai, dismissAi, followUp } from '../ai.js'
+import { ai, dismissAi, followUp, chatKind } from '../ai.js'
 import { tr } from '../store.js'
 import { trackRec } from '../api.js'
 
@@ -67,7 +67,7 @@ watch(() => ai.msgs.length, () => {
             :item="item"
             view="list"
             :show-sku="false"
-            @click="trackRec('click', 'chat', [item.product_id])"
+            @click="trackRec('click', chatKind(), [item.product_id])"
           />
         </div>
       </template>

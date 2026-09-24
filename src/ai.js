@@ -28,7 +28,14 @@ export const ai = reactive({
   error: '',         // a message we are willing to show the visitor
   msgs: [],          // [{ role: 'user'|'assistant', text, items?, hidden? }]
   asked: '',         // the query that opened the current thread
+  entry: '',         // how the thread was opened: 'zero' (auto-ask) | 'button' (CLIENT-CONTRACT §6)
 })
+
+//the card kind the beacons carry for THIS thread (§7): chat_zero / chat_button once the
+//entry is known, plain 'chat' otherwise - the stats page splits the chat by entry on it
+export function chatKind() {
+  return ai.entry ? 'chat_' + ai.entry : 'chat'
+}
 
 export function aiEnabled() {
   const p = window.citoParams
@@ -45,6 +52,7 @@ export function dismissAi() {
   ai.error = ''
   ai.msgs = []
   ai.asked = ''
+  ai.entry = ''
 }
 
 //the thread in the shape api/chat.php wants: role + text, nothing else (the cards are
@@ -67,7 +75,7 @@ function run() {
   ai.pending = true
   const msgs = wire()
 
-  const send = (retry) => chatRequest(msgs, mine.signal)
+  const send = (retry) => chatRequest(msgs, mine.signal, ai.entry)
     .then(d => {
       if (mine.signal.aborted) return
       //a technical failure is worth exactly one silent retry - the widget's own contract
@@ -88,7 +96,7 @@ function run() {
       }
       const items = Object.values(d.items || {}).slice(0, 4)
       ai.msgs.push({ role: 'assistant', text: d.reply, items })
-      if (items.length) trackRec('imp', 'chat', items.map(i => i.product_id))
+      if (items.length) trackRec('imp', chatKind(), items.map(i => i.product_id))
     })
     .catch(err => {
       if (err.name === 'AbortError' || mine.signal.aborted) return
@@ -108,6 +116,9 @@ export function ask(text, { auto = false } = {}) {
 
   ai.open = true
   ai.asked = q
+  //recorded once per thread and sent on every turn of it: the "typed, found nothing, the
+  //AI answered" position is only measurable when the server can tell the two apart
+  ai.entry = auto ? 'zero' : 'button'
   //an auto answer is not something the visitor said, so it is not SHOWN as their message -
   //but it stays in the thread, because the server and every follow-up need it as the first
   //user turn (without it "and cheaper?" has nothing to refer to)

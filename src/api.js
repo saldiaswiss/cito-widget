@@ -68,7 +68,7 @@ export function searchPageUrl(q) { return adapter.searchPageUrl(q) }
 //as searchRequest: text/plain keeps it a simple request with no CORS preflight, and the
 //identity fields are the ones citoParams already carries - api/chat.php needs nothing
 //that the search does not already send. Returns {reply, items, error} or throws.
-export function chatRequest(messages, signal) {
+export function chatRequest(messages, signal, entry) {
   const p = window.citoParams
   return fetch(p.chat_url, {
     method: 'POST',
@@ -86,6 +86,8 @@ export function chatRequest(messages, signal) {
       //the search bar on a product page lost that context. citoParams.page_product is
       //already inlined by the storefront template for the recently-viewed row.
       page_pid: (p.page_product && p.page_product.id) || 0,
+      //how this thread was opened (zero | button), every turn of it - see ai.js
+      entry: entry || undefined,
     }),
     signal,
   }).then(res => res.json())

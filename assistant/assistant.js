@@ -139,6 +139,8 @@
     var adapter = Object.assign({}, cscartDefaults, window.citoAdapter || {});
     var K_VIEWS = 'citoAssistViews'; //product ids seen this session (signal for /a)
     var K_CHAT = 'citoChatHist', K_CHAT_OPEN = 'citoChatOpen';
+    var K_CHAT_ENTRY = 'citoChatEntry'; //how the current thread was opened: 'fab' | 'ask'
+    //(CLIENT-CONTRACT §6 `entry`); set once, with the thread's first visitor turn
     var K_CART = 'citoAssistCart'; //product ids added to the cart this session
     var K_CATS = 'citoAssistCats'; //category ids visited this session
     var K_ORDER = 'citoOrderCtx'; //confirmed guest order identity {order_id, email} - the
@@ -576,16 +578,25 @@
     //---- floating button + chat panel ----
     var chatPanel = null, chatBody = null, chatInput = null, chatSend = null, pending = false;
 
+    //the entry point that opened the panel this time; becomes the thread's `entry` on
+    //its first visitor turn (a thread that already exists keeps its own)
+    var entryCandidate = '';
     var fab = el('button', 'cito-fab');
     fab.type = 'button';
     fab.setAttribute('aria-label', L.open_chat);
     fab.innerHTML = sparkleSvg;
     fab.addEventListener('click', function () {
-      if (chatPanel) closeChat(); else openChat();
+      if (chatPanel) closeChat(); else { entryCandidate = 'fab'; openChat(); }
     });
     document.body.appendChild(fab);
 
     function chatHist() { return jget(K_CHAT, []); }
+    //the card kind the beacons carry for this thread (§7): chat_fab / chat_ask once the
+    //entry is known, plain 'chat' for a thread an older build started
+    function chatKind() {
+      var e = sget(K_CHAT_ENTRY, '');
+      return e ? 'chat_' + e : 'chat';
+    }
     function pushChat(m) {
       var h = chatHist();
       h.push(m);
@@ -654,7 +665,7 @@
           : (m.k === 'oos' ? L.recs_label_oos : L.recs_label);
         b.insertBefore(lab, b.firstChild);
       }
-      var cards = m.items ? cardsBlock(m.items, m.rec ? (m.k || 'chat') : 'chat', anim) : null;
+      var cards = m.items ? cardsBlock(m.items, m.rec ? (m.k || 'chat') : chatKind(), anim) : null;
       if (anim) scrollNew(stick);
       return { bubble: b, cards: cards };
     }
@@ -723,6 +734,10 @@
       chatInput.value = '';
       pending = true;
       chatSend.disabled = true;
+      //first visitor turn of a thread = the thread's entry is decided now
+      if (!sget(K_CHAT_ENTRY, '') && !chatHist().some(function (m) { return m.r === 'u'; })) {
+        sset(K_CHAT_ENTRY, entryCandidate || 'fab');
+      }
       bubble('u', text, 1);
       pushChat({ r: 'u', t: text });
       var typing = el('div', 'cito-chat__bubble cito-chat__bubble--a cito-chat__typing', chatBody);
@@ -758,7 +773,8 @@
           messages: messages,
           order_ctx: jget(K_ORDER, null),
           carted: jget(K_CART, []), //cart context: server excludes these from picks, prefers complements
-          page_pid: pid || 0 //current product page: grounds "similar to THIS" questions server-side
+          page_pid: pid || 0, //current product page: grounds "similar to THIS" questions server-side
+          entry: sget(K_CHAT_ENTRY, '') || undefined //how the thread was opened (fab | ask), every turn
         })).then(function (d) {
           if (d && d.order_ctx) sset(K_ORDER, JSON.stringify(d.order_ctx));
           if (d && d.reply) {
@@ -767,8 +783,8 @@
             var stick = atBottom();//sampled before the nodes land (they change scrollHeight)
             bubble('a', d.reply, 1);
             if (items.length) {
-              cardsBlock(items, 'chat', 1);
-              impBeacon('chat', items);
+              cardsBlock(items, chatKind(), 1);
+              impBeacon(chatKind(), items);
             }
             scrollNew(stick);
             //persisted even if the panel was closed mid-flight: reopen shows the reply
@@ -934,6 +950,7 @@
       btn.appendChild(document.createTextNode(L.ask_product));
       btn.addEventListener('click', function () {
         beacon({ ev: 'click', k: 'ask', product_id: askPid });
+        entryCandidate = 'ask';
         openChat();
         //The opener is SENT, not typed into (2.2.1). It used to be a prefilled sentence
         //fragment ending in a colon, and 28 of 48 uses were sent with nothing after it -
