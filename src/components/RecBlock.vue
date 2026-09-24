@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import ProductCard from './ProductCard.vue'
 import { recs, markRecsSeen } from '../recs.js'
 import { tr } from '../store.js'
-import { trackRec } from '../api.js'
+import { trackRec, touch } from '../api.js'
 
 //The empty state's personalised picks: one line from the model, three products, and no way
 //for it to interrupt anything. Same violet register as the answer block, so "this came from
@@ -59,7 +59,7 @@ watch(open, v => { if (v) markRecsSeen() }, { immediate: true })
           :item="item"
           view="list"
           :show-sku="false"
-          @click="trackRec('click', 'search', [item.product_id])"
+          @click="trackRec('click', 'search', [item.product_id]); touch(item.product_id, 'search', 'click')"
         />
       </div>
     </template>

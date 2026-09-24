@@ -115,6 +115,12 @@ export function recsRequest(payload, signal) {
 //assistant-side analytics: impressions and clicks of the AI block's cards, so they land
 //in assist_events (kind 'h' = chat) instead of click_events. Same endpoint, different
 //payload shape - api/e.php branches on `rec` vs `action` and writes the matching table.
+//an AI touch for the order attribution (contract §4d, adapter.touch): card click / add
+//with the product id, chat open with 0. Never throws - a beacon must not cost a click.
+export function touch(pid, kind, ev) {
+  try { adapter.touch(pid, kind, ev) } catch (e) { /* never break the shop for a beacon */ }
+}
+
 export function trackRec(ev, kind, productIds) {
   const p = window.citoParams
   if (!p || !p.e_url || !productIds || !productIds.length) return

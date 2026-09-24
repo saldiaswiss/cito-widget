@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { chatRequest, trackRec } from './api.js'
+import { chatRequest, trackRec, touch } from './api.js'
 import { tr } from './store.js'
 
 //The assistant, as a surface INSIDE the search overlay (2.1.0).
@@ -119,6 +119,8 @@ export function ask(text, { auto = false } = {}) {
   //recorded once per thread and sent on every turn of it: the "typed, found nothing, the
   //AI answered" position is only measurable when the server can tell the two apart
   ai.entry = auto ? 'zero' : 'button'
+  //the session is "AI-assisted" from here on (order attribution, contract §4d)
+  touch(0, chatKind(), 'open')
   //an auto answer is not something the visitor said, so it is not SHOWN as their message -
   //but it stays in the thread, because the server and every follow-up need it as the first
   //user turn (without it "and cheaper?" has nothing to refer to)

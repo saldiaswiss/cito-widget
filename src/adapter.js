@@ -94,12 +94,17 @@ const cscartDefaults = {
   //CS-Cart: the native ajax pipeline updates the minicart and shows the "product added"
   //notification exactly like the shop's own buttons; without the Tygh runtime a plain
   //ajax add with no page feedback.
-  addToCart(productId) {
+  //`kind` (the card's /e kind, contract §4d) travels as product_data[pid][cito_src]: the
+  //addon's pre_add_to_cart hook whitelists it into the order line, which is what makes an
+  //order "added via AI" on the merchant's page. A host without attribution ignores it.
+  addToCart(productId, kind) {
     const $ = window.Tygh && window.Tygh.$
+    const src = typeof kind === 'string' && /^[a-z_]{1,24}$/.test(kind) ? kind : ''
     if ($ && $.ceAjax) {
       return new Promise(resolve => {
         const product_data = {}
         product_data[productId] = { product_id: productId, amount: 1 }
+        if (src) product_data[productId].cito_src = src
         $.ceAjax('request', window.fn_url ? window.fn_url('checkout.add..' + productId) : '?dispatch=checkout.add..' + productId, {
           method: 'post',
           data: { product_data },
@@ -112,8 +117,21 @@ const cscartDefaults = {
     return fetch(window.fn_url ? window.fn_url('checkout.add..' + productId + '?is_ajax=1') : '?dispatch=checkout.add..' + productId + '&is_ajax=1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'product_data[' + productId + '][product_id]=' + productId + '&product_data[' + productId + '][amount]=1',
+      body: 'product_data[' + productId + '][product_id]=' + productId + '&product_data[' + productId + '][amount]=1'
+        + (src ? '&product_data[' + productId + '][cito_src]=' + encodeURIComponent(src) : ''),
     }).then(r => r.ok).catch(() => false)
+  },
+  //remember an AI touch for the shop's order attribution (contract §4d): a card click or
+  //add (with the product id) or a chat open (pid 0). Fire-and-forget, never per impression.
+  //CS-Cart: a beacon into the PHP session (cito.touch, addon >= 2.6.0); an older addon
+  //answers 404 and nothing happens. Hosts without attribution override it with a no-op.
+  touch(pid, kind, ev) {
+    if (typeof window.fn_url !== 'function' || !navigator.sendBeacon) return
+    const fd = new FormData()
+    fd.append('pid', String(parseInt(pid, 10) || 0))
+    fd.append('k', String(kind || ''))
+    fd.append('ev', String(ev || ''))
+    navigator.sendBeacon(window.fn_url('cito.touch'), fd)
   },
   //call `cb` whenever the platform re-renders the cart page by ajax (the in-page cart
   //block lives inside that table and has to be rebuilt). CS-Cart replaces the cart table

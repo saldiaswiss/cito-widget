@@ -68,12 +68,16 @@
     //CS-Cart: the native ajax pipeline updates the minicart and shows the "product
     //added" notification exactly like the shop's own buttons; without the Tygh runtime
     //a plain ajax add with no page feedback.
-    addToCart: function (productId) {
+    //`kind` (the card's /e kind, contract §4d) travels as product_data[pid][cito_src]: the
+    //addon's pre_add_to_cart hook whitelists it into the order line ("added via AI").
+    addToCart: function (productId, kind) {
       var $ = window.Tygh && window.Tygh.$;
+      var src = (typeof kind === 'string' && /^[a-z_]{1,24}$/.test(kind)) ? kind : '';
       if ($ && $.ceAjax) {
         return new Promise(function (resolve) {
           var product_data = {};
           product_data[productId] = { product_id: productId, amount: 1 };
+          if (src) product_data[productId].cito_src = src;
           $.ceAjax('request', window.fn_url ? window.fn_url('checkout.add..' + productId) : '?dispatch=checkout.add..' + productId, {
             method: 'post',
             data: { product_data: product_data },
@@ -87,7 +91,19 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'product_data[' + productId + '][product_id]=' + productId + '&product_data[' + productId + '][amount]=1'
+          + (src ? '&product_data[' + productId + '][cito_src]=' + encodeURIComponent(src) : '')
       }).then(function (r) { return r.ok; })['catch'](function () { return false; });
+    },
+    //remember an AI touch for the shop's order attribution (contract §4d): card click /
+    //add with the product id, chat open with 0. Fire-and-forget, never per impression.
+    //CS-Cart: a beacon into the PHP session (cito.touch, addon >= 2.6.0).
+    touch: function (pid, kind, ev) {
+      if (typeof window.fn_url !== 'function' || !navigator.sendBeacon) return;
+      var fd = new FormData();
+      fd.append('pid', String(parseInt(pid, 10) || 0));
+      fd.append('k', String(kind || ''));
+      fd.append('ev', String(ev || ''));
+      navigator.sendBeacon(window.fn_url('cito.touch'), fd);
     },
     //call `cb` whenever the platform re-renders the cart page by ajax. CS-Cart replaces
     //the cart table wholesale on quantity changes; commoninit is the event every addon
@@ -190,6 +206,10 @@
       try { var v = sessionStorage.getItem(k); return v === null ? fallback : v; } catch (e) { return fallback; }
     }
     function sset(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+    //an AI touch for the order attribution (adapter.touch, contract §4d) - never throws
+    function touch(pid, kind, ev) {
+      try { adapter.touch(pid, kind, ev); } catch (e) { /* never break the shop for a beacon */ }
+    }
     function sdel(k) { try { sessionStorage.removeItem(k); } catch (e) {} }
     function jget(k, fallback) {
       try { var v = JSON.parse(sget(k, 'null')); return v === null ? fallback : v; } catch (e) { return fallback; }
@@ -264,6 +284,7 @@
       a.href = adapter.productUrl(item);
       a.addEventListener('click', function () {
         beacon({ ev: 'click', k: kind || 'chat', product_id: item.product_id });
+        touch(item.product_id, kind || 'chat', 'click');
       });
       var imgWrap = el('span', 'cito-assist__img', a);
       var img = document.createElement('img');
@@ -305,13 +326,14 @@
         //value = the price shown on the card. Reporting only - the server bounds it
         //and never decides anything on it (api/e.php).
         beacon({ ev: 'add', k: kind || 'chat', product_id: id, value: price > 0 ? price : 0 });
+        touch(id, kind || 'chat', 'add');
         btn.innerHTML = '&#10003;';
         btn.setAttribute('aria-label', L.added);
         btn.title = L.added;
       };
       //the platform's own add (adapter): on CS-Cart the native ajax pipeline updates the
       //minicart and shows the "product added" notification like the shop's own buttons
-      Promise.resolve().then(function () { return adapter.addToCart(id); })
+      Promise.resolve().then(function () { return adapter.addToCart(id, kind || 'chat'); })
         .then(function (ok) { done(!!ok); })['catch'](function () { done(false); });
     }
     function apiPost(url, payload) {
@@ -675,6 +697,9 @@
     //that only rebuild an already-open panel.
     function openChat(quiet, restored) {
       if (chatPanel) return;
+      //the session is "AI-assisted" from here on (order attribution, contract §4d) - a
+      //panel restored across navigation is not a new open
+      if (!restored) touch(0, entryCandidate ? 'chat_' + entryCandidate : 'chat', 'open');
       sset(K_CHAT_OPEN, '1');
       chatPanel = el('div', 'cito-chat');
       chatPanel.setAttribute('role', 'dialog');

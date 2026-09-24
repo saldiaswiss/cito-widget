@@ -3,7 +3,7 @@ import { ref, watch, nextTick } from 'vue'
 import ProductCard from './ProductCard.vue'
 import { ai, dismissAi, followUp, chatKind } from '../ai.js'
 import { tr } from '../store.js'
-import { trackRec } from '../api.js'
+import { trackRec, touch } from '../api.js'
 
 //The assistant's answer, ABOVE the result grid and never instead of it. The violet
 //register is deliberate: if AI picks looked like the result list, nobody could tell what
@@ -67,7 +67,7 @@ watch(() => ai.msgs.length, () => {
             :item="item"
             view="list"
             :show-sku="false"
-            @click="trackRec('click', chatKind(), [item.product_id])"
+            @click="trackRec('click', chatKind(), [item.product_id]); touch(item.product_id, chatKind(), 'click')"
           />
         </div>
       </template>
