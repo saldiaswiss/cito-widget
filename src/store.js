@@ -132,7 +132,6 @@ const TR_DEFAULTS = {
   'cito.assist_label': 'AI assistant',
   'cito.assist_ask': 'Ask the AI assistant',
   'cito.assist_thinking': 'Looking for an answer…',
-  'cito.assist_beta': 'Beta',
   'cito.assist_error': 'That didn’t work just now – please try again.',
   'cito.assist_tech_error': 'I’m having a technical problem fetching the answer – please try again in a moment.',
   'cito.assist_close': 'Close',

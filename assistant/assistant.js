@@ -169,28 +169,28 @@
             error: 'Das hat gerade nicht geklappt – versuch es bitte noch einmal.',
             tech_error: 'Ich habe gerade ein technisches Problem beim Abrufen der Antwort – bitte versuch es gleich noch einmal.',
             recs_label: 'Empfehlungen für dich', recs_label_cart: 'Passend zu deinem Warenkorb',
-            recs_label_oos: 'Verfügbare Alternativen', ask_product: 'Frage zu diesem Produkt?', ask_prefill: 'Ich habe eine Frage zu «%s».', add_to_cart: 'In den Warenkorb', added: 'Hinzugefügt', beta: 'Beta' },
+            recs_label_oos: 'Verfügbare Alternativen', ask_product: 'Frage zu diesem Produkt?', ask_prefill: 'Ich habe eine Frage zu «%s».', add_to_cart: 'In den Warenkorb', added: 'Hinzugefügt' },
       fr: { label: 'Assistant IA', close: 'Fermer', open_chat: 'Ouvrir l’assistant IA',
             placeholder: 'Décris ce que tu cherches…', send: 'Envoyer',
             greeting: 'Salut ! Je te propose des produits adaptés et réellement en stock, je t’aide à choisir – et tu peux aussi me demander où en est ta commande. Que cherches-tu ?',
             error: 'Cela n’a pas fonctionné – réessaie, s’il te plaît.',
             tech_error: 'J’ai un problème technique pour récupérer la réponse – merci de réessayer dans un instant.',
             recs_label: 'Recommandations pour toi', recs_label_cart: 'Assorti à ton panier',
-            recs_label_oos: 'Alternatives disponibles', ask_product: 'Une question sur ce produit ?', ask_prefill: 'J’ai une question sur « %s ».', add_to_cart: 'Ajouter au panier', added: 'Ajouté', beta: 'Bêta' },
+            recs_label_oos: 'Alternatives disponibles', ask_product: 'Une question sur ce produit ?', ask_prefill: 'J’ai une question sur « %s ».', add_to_cart: 'Ajouter au panier', added: 'Ajouté' },
       it: { label: 'Assistente IA', close: 'Chiudi', open_chat: 'Apri l’assistente IA',
             placeholder: 'Descrivi cosa cerchi…', send: 'Invia',
             greeting: 'Ciao! Ti propongo prodotti adatti e davvero disponibili, ti aiuto a scegliere – e puoi anche chiedermi lo stato del tuo ordine. Cosa cerchi?',
             error: 'Qualcosa è andato storto – riprova per favore.',
             tech_error: 'Ho un problema tecnico nel recuperare la risposta – riprova tra un attimo, per favore.',
             recs_label: 'Consigli per te', recs_label_cart: 'Abbinati al tuo carrello',
-            recs_label_oos: 'Alternative disponibili', ask_product: 'Hai una domanda su questo prodotto?', ask_prefill: 'Ho una domanda su «%s».', add_to_cart: 'Aggiungi al carrello', added: 'Aggiunto', beta: 'Beta' },
+            recs_label_oos: 'Alternative disponibili', ask_product: 'Hai una domanda su questo prodotto?', ask_prefill: 'Ho una domanda su «%s».', add_to_cart: 'Aggiungi al carrello', added: 'Aggiunto' },
       en: { label: 'AI assistant', close: 'Close', open_chat: 'Open AI assistant',
             placeholder: 'Describe what you’re looking for…', send: 'Send',
             greeting: 'Hi! I suggest products that fit you and are actually in stock, help you choose – and you can also ask me about the status of your order. What are you looking for?',
             error: 'That didn’t work just now – please try again.',
             tech_error: 'I’m having a technical problem fetching the answer – please try again in a moment.',
             recs_label: 'Recommendations for you', recs_label_cart: 'Goes well with your cart',
-            recs_label_oos: 'Available alternatives', ask_product: 'A question about this product?', ask_prefill: 'I have a question about “%s”.', add_to_cart: 'Add to cart', added: 'Added', beta: 'Beta' }
+            recs_label_oos: 'Available alternatives', ask_product: 'A question about this product?', ask_prefill: 'I have a question about “%s”.', add_to_cart: 'Add to cart', added: 'Added' }
     };
     var L = labels[P.lang_code] || labels.en;
     //shop-side translations (cito.assist_*; CS-Cart: the addon's langvars) override the
@@ -384,8 +384,6 @@
       '.cito-assist__badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.05em;' +
       'text-transform:uppercase;color:#5b21b6;background:#f3eefe;border-radius:20px;padding:3px 9px}' +
       '.cito-assist__badge svg{width:11px;height:11px}' +
-      '.cito-assist__beta{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;' +
-      'color:#8e8e93;border:1px solid #d8d8dc;border-radius:5px;padding:1.5px 6px}' +
       '.cito-assist__close{margin-left:auto;border:0;background:none;cursor:pointer;color:#8e8e93;font-size:20px;line-height:1;padding:2px 6px}' +
       '.cito-assist__close:hover{color:#1c1c1e}' +
       '.cito-assist__msg{padding:12px 14px 6px;font-size:13.5px}' +
@@ -587,8 +585,6 @@
       var badge = el('span', 'cito-assist__badge', head);
       badge.innerHTML = sparkleSvg;
       badge.appendChild(document.createTextNode(L.label));
-      var beta = el('span', 'cito-assist__beta', head);
-      beta.textContent = L.beta;
       var close = el('button', 'cito-assist__close', head);
       close.type = 'button';
       close.setAttribute('aria-label', L.close);
@@ -851,7 +847,6 @@
       var badge = el('span', 'cito-assist__badge', head);
       badge.innerHTML = sparkleSvg;
       badge.appendChild(document.createTextNode(label));
-      el('span', 'cito-assist__beta', head).textContent = L.beta;
       if (message) el('div', 'cito-cartrecs__msg', box).textContent = message;
       var wrap = el('div', 'cito-cartrecs__cards', box);
       items.slice(0, 3).forEach(function (item) { renderCard(item, wrap, kind); });

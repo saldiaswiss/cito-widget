@@ -47,7 +47,6 @@ watch(open, v => { if (v) markRecsSeen() }, { immediate: true })
           </svg>
           {{ tr('cito.assist_label') }}
         </span>
-        <span class="cito-recs__beta">{{ tr('cito.assist_beta') }}</span>
         <button v-if="collapsed" type="button" class="cito-recs__close" @click="expanded = false"
                 :aria-label="tr('cito.close')">&times;</button>
       </header>
@@ -96,10 +95,6 @@ watch(open, v => { if (v) markRecsSeen() }, { immediate: true })
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
   color: #7c3aed;
-}
-.cito-recs__beta {
-  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-  color: #7c3aed; background: #efe8fd; border-radius: 999px; padding: 2px 7px;
 }
 .cito-recs__msg { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--ink); max-width: 62ch; }
 .cito-recs__cards {

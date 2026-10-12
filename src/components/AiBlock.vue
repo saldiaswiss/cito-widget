@@ -46,7 +46,6 @@ watch(() => ai.msgs.length, () => {
         </svg>
         {{ tr('cito.assist_label') }}
       </span>
-      <span class="cito-ai__beta">{{ tr('cito.assist_beta') }}</span>
       <button type="button" class="cito-ai__close" :aria-label="tr('cito.assist_close')" @click="dismissAi()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M6 6l12 12M18 6L6 18"/>
@@ -114,10 +113,6 @@ watch(() => ai.msgs.length, () => {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
   color: #7c3aed;
-}
-.cito-ai__beta {
-  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-  color: #7c3aed; background: #efe8fd; border-radius: 999px; padding: 2px 7px;
 }
 .cito-ai__close {
   margin-left: auto; display: inline-flex; align-items: center; justify-content: center;
