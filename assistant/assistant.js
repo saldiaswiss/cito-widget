@@ -915,6 +915,44 @@
     //wholesale, on commoninit) - the adapter tells us when, the block is rebuilt then
     try { adapter.onCartRerender(initCartBlock); } catch (e) { /* no re-render hook on this host */ }
 
+    //---- in-page surfaces vs. a sticky buy bar ----
+    //The product-page containers below are printed by the host's buy-button hook, and
+    //on most phone themes that wrapper turns into a bar glued to the bottom edge of the
+    //screen (position:fixed, ~60px tall, one flex row: quantity, wishlist, add to cart).
+    //A line of ours inside it takes a row of its own: the bar grows, the add-to-cart
+    //button is pushed half off the screen and the line itself ends up under the equally
+    //fixed quantity box (reported from a shop, 2026-10-26). The template cannot pick
+    //another hook - the one it uses is the only one wrapping both the in-stock and the
+    //sold-out branch - so the surface leaves the bar at runtime: it moves right after
+    //its outermost fixed ancestor, into the page flow where the buy area sits (on a
+    //wide screen nothing is fixed and nothing moves). This is a computed fact about our
+    //own container, not a guess at what the theme glued to the screen - which is why
+    //the floating button's clearance stays a merchant setting. It runs before the
+    //container is unhidden, so nothing ever renders inside the bar, and again on
+    //resize: a phone rotated from landscape to portrait crosses the theme's breakpoint
+    //and only then wraps the buy area in the bar.
+    var inPageHosts = [];
+    function leaveFixedBar(host) {
+      var node = host.parentElement, bar = null;
+      while (node && node !== document.body) {
+        if (window.getComputedStyle(node).position === 'fixed') bar = node;
+        node = node.parentElement;
+      }
+      if (bar && bar.parentNode) bar.parentNode.insertBefore(host, bar.nextSibling);
+    }
+    function placeInPage(host) {
+      inPageHosts.push(host);
+      leaveFixedBar(host);
+    }
+    var barRaf = 0;
+    window.addEventListener('resize', function () {
+      if (barRaf) return;
+      barRaf = window.requestAnimationFrame(function () {
+        barRaf = 0;
+        for (var i = 0; i < inPageHosts.length; i++) leaveFixedBar(inPageHosts[i]);
+      });
+    });
+
     //---- in-page alternatives on a sold-out product page (2.2.0) ----
     //Same container pattern and the same box as the cart block: the hook template
     //(hooks/products/add_to_cart.pre.tpl) leaves an empty hidden div where the buy
@@ -929,6 +967,7 @@
       host.setAttribute('data-cito-done', '1');
       function show(message, items) {
         renderRecBox(host, L.recs_label_oos, message, items, 'oospage', false);
+        placeInPage(host);
         host.style.display = '';
         whenVisible(host, function () { impBeacon('oospage', items); });
       }
@@ -995,6 +1034,7 @@
         //behaves like the old prefill and the visitor can send it himself
         if (chatInput) chatInput.focus();
       });
+      placeInPage(host);
       host.style.display = '';
       whenVisible(host, function () { beacon({ ev: 'imp', k: 'ask', product_ids: [askPid] }); });
     }
